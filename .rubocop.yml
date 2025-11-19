@@ -1,7 +1,7 @@
 # RuboCop configuration for pbf_reverse_geocoder
 
 AllCops:
-  TargetRubyVersion: 2.6
+  TargetRubyVersion: 3.4
   NewCops: enable
   SuggestExtensions: false
   Exclude:

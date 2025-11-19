@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = 'A lightweight reverse geocoding library that uses Mapbox Vector Tiles (PBF format) to find Japanese administrative areas (prefecture, city) from latitude/longitude coordinates. Ruby implementation of @geolonia/open-reverse-geocoder.'
   spec.homepage = 'https://github.com/keisuke2236/pbf_reverse_geocoder'
   spec.license = 'MIT'
-  spec.required_ruby_version = '>= 2.6.0'
+  spec.required_ruby_version = '>= 3.0.0'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/keisuke2236/pbf_reverse_geocoder'
