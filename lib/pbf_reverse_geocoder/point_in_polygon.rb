@@ -5,6 +5,7 @@
 # d3-geo の geoContains に相当
 module PbfReverseGeocoder
   class PointInPolygon
+
     # 点がポリゴン内にあるか判定
     # 点からX軸正方向に伸ばした半直線が、ポリゴンの辺と何回交差するかを数える
     # 奇数回 = 内側、偶数回 = 外側
@@ -12,11 +13,6 @@ module PbfReverseGeocoder
     # @param point [Array<Float>] [lng, lat] 判定する点の座標
     # @param polygon [Array<Array<Float>>] [[lng, lat], ...] ポリゴンの頂点座標配列
     # @return [Boolean] true: 内側, false: 外側
-    #
-    # @example
-    #   PointInPolygon.contains?([139.7671, 35.6812], [[139.0, 35.0], [140.0, 35.0], [140.0, 36.0], [139.0, 36.0]])
-    #   #=> true
-    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     def self.contains?(point, polygon)
       return false if polygon.nil? || polygon.empty?
 
@@ -43,6 +39,6 @@ module PbfReverseGeocoder
 
       inside
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
+
   end
 end

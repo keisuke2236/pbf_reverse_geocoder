@@ -9,6 +9,7 @@ require_relative 'pbf_reverse_geocoder/pbf_tile_reader'
 
 # PBF-based reverse geocoding for Japanese administrative areas
 module PbfReverseGeocoder
+
   class Error < StandardError; end
 
   # Main entry point for reverse geocoding
@@ -40,4 +41,5 @@ module PbfReverseGeocoder
 
     nil
   end
+
 end

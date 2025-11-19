@@ -3,7 +3,9 @@
 # 緯度経度からタイル座標を計算するモジュール
 # @geolonia/open-reverse-geocoder の lngLatToGoogle ロジックを実装
 module PbfReverseGeocoder
+
   class TileCalculator
+
     # ズームレベル10固定(@geoloniaと同じ、約30km四方)
     ZOOM = 10
 
@@ -17,7 +19,6 @@ module PbfReverseGeocoder
     # @example
     #   TileCalculator.lng_lat_to_tile(139.7671, 35.6812)
     #   #=> [904, 403, 10]
-    # rubocop:disable Metrics/AbcSize
     def self.lng_lat_to_tile(lng, lat)
       # global-mercator の pointToTileFraction ロジック
       n = 2.0**ZOOM
@@ -48,6 +49,7 @@ module PbfReverseGeocoder
       require 'pathname'
       Pathname.new(tiles_dir).join(zoom.to_s, x.to_s, "#{y}.pbf")
     end
-    # rubocop:enable Metrics/AbcSize
+
   end
+
 end

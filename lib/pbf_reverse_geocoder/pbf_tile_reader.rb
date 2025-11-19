@@ -4,9 +4,10 @@ require_relative 'simple_pbf_parser'
 require_relative 'geometry_decoder'
 
 # PBFタイルを読み込んでフィーチャー一覧を返すモジュール
-# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
 module PbfReverseGeocoder
+
   class PbfTileReader
+
     # @geoloniaと同じレイヤー名
     LAYER_NAME = 'japanese-admins'
 
@@ -17,11 +18,9 @@ module PbfReverseGeocoder
     # @param tile_y [Integer] タイルY座標
     # @param zoom [Integer] ズームレベル
     # @return [Array<Hash>] フィーチャー配列
-    #   各フィーチャー: { geometry: [[lng, lat], ...], properties: { 'prefecture' => '...', 'city' => '...', 'code' => '...' } }
     #
     # @example
     #   features = PbfTileReader.read_tile('/app/public/tiles/10/904/403.pbf', 904, 403, 10)
-    #   #=> [{ geometry: [[139.0, 35.0], ...], properties: { 'prefecture' => '東京都', 'city' => '千代田区', 'code' => '13101' } }, ...]
     def self.read_tile(tile_path, tile_x, tile_y, zoom)
       return [] unless File.exist?(tile_path)
 
@@ -85,6 +84,7 @@ module PbfReverseGeocoder
     end
 
     private_class_method :decode_properties
+
   end
+
 end
-# rubocop:enable Metrics/AbcSize, Metrics/MethodLength

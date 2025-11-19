@@ -1,19 +1,19 @@
-# Changelog
+# 変更履歴
 
-All notable changes to this project will be documented in this file.
+このプロジェクトの主要な変更はこのファイルに記録されます。
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+形式は [Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) に基づいており、
+バージョニングは [Semantic Versioning](https://semver.org/lang/ja/) に準拠しています。
 
 ## [Unreleased]
 
 ## [0.1.0] - 2025-11-19
 
-### Added
-- Initial release
-- PBF tile reader for Mapbox Vector Tiles
-- Geometry decoder for MVT format
-- Point-in-Polygon detection using Ray Casting Algorithm
-- Tile coordinate calculator
-- Simple PBF parser for Protocol Buffers wire format
-- Support for Japanese administrative areas (prefecture, city, code)
+### 追加
+- 初回リリース
+- Mapbox Vector Tiles用のPBFタイルリーダー
+- MVT形式のジオメトリデコーダー
+- Ray Casting Algorithmを使用したPoint-in-Polygon判定
+- タイル座標計算機
+- Protocol Buffersワイヤーフォーマット用のシンプルなPBFパーサー
+- 日本の行政区域データ対応（都道府県、市区町村、コード）

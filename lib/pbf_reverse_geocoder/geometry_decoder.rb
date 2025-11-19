@@ -2,9 +2,10 @@
 
 # Mapbox Vector Tile (MVT) のジオメトリをデコードするモジュール
 # Command integers と ZigZag encoding, Delta encoding を処理
-# rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Lint/DuplicateBranch
 module PbfReverseGeocoder
+
   class GeometryDecoder
+
     # MVT標準のタイル解像度
     EXTENT = 4096
 
@@ -121,6 +122,7 @@ module PbfReverseGeocoder
     end
 
     private_class_method :decode_commands, :decode_zigzag, :tile_coords_to_lng_lat
+
   end
+
 end
-# rubocop:enable Metrics/AbcSize, Metrics/MethodLength, Lint/DuplicateBranch

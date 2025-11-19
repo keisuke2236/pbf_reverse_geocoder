@@ -28,124 +28,151 @@ gem install pbf_reverse_geocoder
 
 ## 使い方
 
-### 基本的な使用方法
+### クイックスタート
 
 ```ruby
 require 'pbf_reverse_geocoder'
 
 # タイルディレクトリのパスを指定
-tiles_dir = '/path/to/tiles'
+tiles_dir = './tiles'  # ダウンロードしたタイルの場所
 
-# 緯度経度から行政区域情報を取得
+# 緯度経度から行政区域情報を取得（東京駅の例）
 result = PbfReverseGeocoder.reverse_geocode(139.7671, 35.6812, tiles_dir)
 
 puts result
 # => { "prefecture" => "東京都", "city" => "千代田区", "code" => "13101" }
 ```
 
+### より詳しい使用例
+
+```ruby
+require 'pbf_reverse_geocoder'
+
+# 複数の地点を検索
+locations = [
+  { name: '東京駅', lng: 139.7671, lat: 35.6812 },
+  { name: '大阪城', lng: 135.5258, lat: 34.6873 },
+  { name: '札幌駅', lng: 141.3506, lat: 43.0686 }
+]
+
+tiles_dir = './tiles'
+
+locations.each do |loc|
+  result = PbfReverseGeocoder.reverse_geocode(loc[:lng], loc[:lat], tiles_dir)
+
+  if result
+    puts "#{loc[:name]}: #{result['prefecture']} #{result['city']} (#{result['code']})"
+  else
+    puts "#{loc[:name]}: 該当する行政区域が見つかりません"
+  end
+end
+
+# 出力:
+# 東京駅: 東京都 千代田区 (13101)
+# 大阪城: 大阪府 大阪市中央区 (27128)
+# 札幌駅: 北海道 札幌市北区 (01102)
+```
+
+### Railsでの使用例
+
+```ruby
+# config/initializers/reverse_geocoder.rb
+TILES_DIR = Rails.root.join('public', 'tiles').to_s
+
+# app/controllers/locations_controller.rb
+class LocationsController < ApplicationController
+  def reverse_geocode
+    lng = params[:lng].to_f
+    lat = params[:lat].to_f
+
+    result = PbfReverseGeocoder.reverse_geocode(lng, lat, TILES_DIR)
+
+    if result
+      render json: result
+    else
+      render json: { error: 'Not found' }, status: :not_found
+    end
+  end
+end
+```
+
 ### タイルデータの準備
 
 このgemを使用するには、事前にPBF形式のタイルデータを準備する必要があります。
 
-#### 方法1: ビルド済みタイルをダウンロード（推奨）
+以下の2つの方法があります：
 
-Geoloniaが提供するビルド済みのタイルデータを使用できます：
+#### 方法1: Geoloniaのリポジトリから取得
 
-```bash
-# タイル格納ディレクトリを作成
-mkdir -p tiles
-
-# 必要な範囲のタイルをダウンロード
-# 例: 東京周辺 (z=10, x=904, y=403)
-mkdir -p tiles/10/904
-curl -o tiles/10/904/403.pbf \
-  "https://cdn.geolonia.com/tiles/japanese-admins/10/904/403.pbf"
-```
-
-**全国のタイルを一括ダウンロード:**
-
-このリポジトリに含まれるスクリプトを使用できます：
+[@geolonia/open-reverse-geocoder](https://github.com/geolonia/open-reverse-geocoder)のリポジトリから直接タイルを取得できます。
 
 ```bash
-# リポジトリをクローン（または直接スクリプトをダウンロード）
-git clone https://github.com/keisuke2236/pbf_reverse_geocoder.git
-cd pbf_reverse_geocoder
+# Geoloniaのリポジトリをクローン（タイルのみ）
+git clone --depth 1 --filter=blob:none --sparse \
+  https://github.com/geolonia/open-reverse-geocoder.git
 
-# スクリプトを実行
-./scripts/download_tiles.sh tiles
+cd open-reverse-geocoder
+git sparse-checkout set docs/tiles
 
-# または、カスタムディレクトリを指定
-./scripts/download_tiles.sh /path/to/custom/tiles
+# タイルをホスティング用のディレクトリに配置
+cp -r docs/tiles /path/to/hosting/directory
 ```
 
-手動でダウンロードする場合：
+> **💡 配置例**
+> - **Webサーバ**: `public/tiles`（Rails/Nginxなど）
+> - **共有ストレージ**: NFS/S3マウントポイントなど
+> - **アプリケーション内蔵**: `vendor/tiles`
+> - タイルは約560個、合計サイズは数十MB程度です
+> 
+> **ホスティングのポイント**:
+> - タイルデータは全サーバで共有可能（読み取り専用）
+> - CDN経由での配信も可能（PBFファイルはバイナリ）
+> - コンテナ環境ではボリュームマウントで共有
 
-```bash
-#!/bin/bash
-# download_tiles.sh - 日本全国のタイルをダウンロード
+#### 方法2: ソースデータから自分でビルド（最新データが必要な場合）
 
-BASE_URL="https://cdn.geolonia.com/tiles/japanese-admins"
-ZOOM=10
-OUTPUT_DIR="tiles"
+国土数値情報から最新の行政区域データを使って、自分でタイルをビルドすることもできます。
 
-# 日本全体をカバーする範囲（ズームレベル10）
-# X: 896-926, Y: 396-413
-
-for x in {896..926}; do
-  for y in {396..413}; do
-    mkdir -p "$OUTPUT_DIR/$ZOOM/$x"
-    echo "Downloading tile $ZOOM/$x/$y..."
-    curl -f -o "$OUTPUT_DIR/$ZOOM/$x/$y.pbf" \
-      "$BASE_URL/$ZOOM/$x/$y.pbf" 2>/dev/null || echo "Skip $x/$y"
-  done
-done
-
-echo "Download complete!"
-```
-
-#### 方法2: ソースデータから自分でビルド
-
-より詳細な制御が必要な場合は、自分でタイルをビルドできます。
-
-**必要なツール:**
+**🔧 必要なツール:**
+- [ogr2ogr](https://gdal.org/programs/ogr2ogr.html) - GDALツール（GeoJSON変換用）
 - [Tippecanoe](https://github.com/felt/tippecanoe) - Mapboxのタイル生成ツール
-- [japanese-admins](https://github.com/geolonia/japanese-admins) - 日本の行政区域データ
+- [mb-util](https://github.com/mapbox/mbutil) - MBTiles変換ツール
 
-**手順:**
+**macOSの場合:**
 
 ```bash
-# 1. Tippecanoeをインストール（macOS）
-brew install tippecanoe
-
-# または、Linuxの場合
-git clone https://github.com/felt/tippecanoe.git
-cd tippecanoe
-make -j
-sudo make install
-
-# 2. japanese-adminsリポジトリをクローン
-git clone https://github.com/geolonia/japanese-admins.git
-cd japanese-admins
-
-# 3. GeoJSONデータを取得
-# READMEの指示に従ってデータを準備
-
-# 4. Tippecanoeでタイルを生成
-tippecanoe -o admins.mbtiles \
-  --maximum-zoom=10 \
-  --minimum-zoom=10 \
-  --base-zoom=10 \
-  --layer=japanese-admins \
-  --drop-densest-as-needed \
-  --extend-zooms-if-still-dropping \
-  data.geojson
-
-# 5. MBTilesからPBFファイルを抽出
-mkdir -p tiles/10
-tile-join --no-tile-compression \
-  --output-to-directory=tiles \
-  admins.mbtiles
+# 必要なツールをインストール
+brew install gdal tippecanoe
+pip install mbutil
 ```
+
+**🏗️ ビルド手順:**
+
+```bash
+# 1. 元のリポジトリをクローン（ビルドスクリプトを使用）
+git clone https://github.com/geolonia/open-reverse-geocoder.git
+cd open-reverse-geocoder
+
+# 2. 依存関係をインストール
+npm install
+
+# 3. タイルをビルド（国土数値情報から自動ダウンロード＆ビルド）
+npm run build:tiles
+
+# 4. ビルドされたタイルをコピー
+cp -r docs/tiles /path/to/your/project/tiles
+```
+
+**ビルドプロセスの詳細:**
+
+1. 国土数値情報から最新の[行政区域データ](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-v2_4.html)をダウンロード
+2. `ogr2ogr`でShapefileをGeoJSONに変換
+3. プロパティ調整スクリプトを実行（prefecture, city, codeフィールドを整形）
+4. `tippecanoe`でMBTilesを生成（非圧縮で出力）
+5. `mb-util`でタイルを分解して静的ファイル化
+
+
+> 詳細は[@geolonia/open-reverse-geocoder](https://github.com/geolonia/open-reverse-geocoder#%E3%82%BF%E3%82%A4%E3%83%AB%E3%81%AE%E3%83%93%E3%83%AB%E3%83%89%E6%96%B9%E6%B3%95)のREADMEを参照してください。
 
 #### ディレクトリ構造
 

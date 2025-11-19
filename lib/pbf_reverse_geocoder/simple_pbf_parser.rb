@@ -2,9 +2,10 @@
 
 # Mapbox Vector Tile (MVT) に特化した簡易PBFパーサー
 # Protocol Buffersの基本的なワイヤフォーマットをパース
-# rubocop:disable Metrics/ClassLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
 module PbfReverseGeocoder
+
   class SimplePbfParser
+
     # Protocol Buffersのワイヤタイプ
     WIRE_TYPE_VARINT = 0
     WIRE_TYPE_64BIT = 1
@@ -221,6 +222,7 @@ module PbfReverseGeocoder
 
     private_class_method :parse_layer, :parse_feature, :parse_value,
                          :read_varint, :unpack_packed_varint, :skip_field
+
   end
+
 end
-# rubocop:enable Metrics/ClassLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
