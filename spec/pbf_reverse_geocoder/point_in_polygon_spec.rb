@@ -14,7 +14,6 @@ RSpec.describe PbfReverseGeocoder::PointInPolygon do
       ]
     end
 
-    # L字型の複雑なポリゴン
     let(:l_shaped_polygon) do
       [
         [0.0, 0.0],
@@ -66,7 +65,6 @@ RSpec.describe PbfReverseGeocoder::PointInPolygon do
       end
 
       it 'L字型ポリゴンの切り欠き部分で false を返すこと' do
-        # (7, 7) はL字の切り欠き部分（外側）
         result = described_class.contains?([7.0, 7.0], l_shaped_polygon)
 
         expect(result).to be false
@@ -74,17 +72,16 @@ RSpec.describe PbfReverseGeocoder::PointInPolygon do
     end
 
     context '境界線上の点を渡した場合' do
-      # Ray Casting では境界線上の判定は実装によって異なる
       it '四角形の辺上で結果を返すこと' do
         result = described_class.contains?([5.0, 0.0], square_polygon)
 
-        expect([true, false]).to include(result)  # 実装依存
+        expect([true, false]).to include(result)
       end
 
       it '四角形の頂点で結果を返すこと' do
         result = described_class.contains?([0.0, 0.0], square_polygon)
 
-        expect([true, false]).to include(result)  # 実装依存
+        expect([true, false]).to include(result)
       end
     end
 
@@ -115,7 +112,6 @@ RSpec.describe PbfReverseGeocoder::PointInPolygon do
     end
 
     context '実際の日本の座標に近い値' do
-      # 東京23区を模した簡略ポリゴン（緯度経度）
       let(:tokyo_polygon) do
         [
           [139.5, 35.5],
