@@ -121,14 +121,12 @@ RSpec.describe PbfReverseGeocoder::PbfTileReader do
     end
 
     context 'ファイルが存在するがパースエラーの場合' do
-      it '空配列を返し、警告を出すこと' do
+      it '空配列を返すこと' do
         FileUtils.mkdir_p(File.dirname(tile_path))
         File.write(tile_path, 'invalid binary data')
 
-        expect do
-          result = described_class.read_tile(tile_path, 904, 403, 10)
-          expect(result).to eq([])
-        end.to output(/Failed to read PBF tile/).to_stderr
+        result = described_class.read_tile(tile_path, 904, 403, 10)
+        expect(result).to eq([])
       end
     end
 

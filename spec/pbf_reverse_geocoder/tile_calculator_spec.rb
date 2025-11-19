@@ -9,7 +9,7 @@ RSpec.describe PbfReverseGeocoder::TileCalculator do
         x, y, zoom = described_class.lng_lat_to_tile(139.7671, 35.6812)
 
         expect(zoom).to eq(10)
-        expect(x).to eq(904)
+        expect(x).to eq(909)
         expect(y).to eq(403)
       end
     end
@@ -19,7 +19,7 @@ RSpec.describe PbfReverseGeocoder::TileCalculator do
         x, y, zoom = described_class.lng_lat_to_tile(135.5258, 34.6873)
 
         expect(zoom).to eq(10)
-        expect(x).to eq(899)
+        expect(x).to eq(897)
         expect(y).to eq(406)
       end
     end
@@ -29,8 +29,8 @@ RSpec.describe PbfReverseGeocoder::TileCalculator do
         x, y, zoom = described_class.lng_lat_to_tile(141.3506, 43.0686)
 
         expect(zoom).to eq(10)
-        expect(x).to eq(907)
-        expect(y).to eq(390)
+        expect(x).to eq(914)
+        expect(y).to eq(376)
       end
     end
 

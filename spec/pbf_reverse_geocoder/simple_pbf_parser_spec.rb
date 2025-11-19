@@ -131,14 +131,13 @@ RSpec.describe PbfReverseGeocoder::SimplePbfParser do
   describe '.parse_feature' do
     it 'フィーチャーのid, type, tags, geometryをパースすること' do
       # Feature with:
-      # - id = 13101 (field 1, varint)
+      # - id = 100 (field 1, varint)
       # - type = 3 (Polygon) (field 3, varint)
       # - tags = [0, 0, 1, 1] (field 2, packed)
       # - geometry = [9, 100, 68] (field 4, packed)
 
-      # Simplified mock data
       data = [
-        0x08, 0xCD, 0xE6, 0x03,      # field 1: id=13101 (varint)
+        0x08, 0x64,                   # field 1: id=100 (varint)
         0x18, 0x03,                   # field 3: type=3 (varint)
         0x12, 0x04, 0x00, 0x00, 0x01, 0x01,  # field 2: tags=[0,0,1,1]
         0x22, 0x03, 0x09, 0x64, 0x44  # field 4: geometry=[9,100,68]
@@ -146,7 +145,7 @@ RSpec.describe PbfReverseGeocoder::SimplePbfParser do
 
       result = described_class.send(:parse_feature, data)
 
-      expect(result[:id]).to eq(13_101)
+      expect(result[:id]).to eq(100)
       expect(result[:type]).to eq(3)
       expect(result[:tags]).to eq([0, 0, 1, 1])
       expect(result[:geometry]).to eq([9, 100, 68])
