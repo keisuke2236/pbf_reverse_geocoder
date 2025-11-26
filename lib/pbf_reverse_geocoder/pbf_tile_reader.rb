@@ -118,8 +118,6 @@ module PbfReverseGeocoder
     # @param props [Hash]
     # @return [Hash]
     def self.normalize_properties(props)
-      normalized = props.dup
-
       prefecture = props['prefecture'] || props['N03_001']
       sub_prefecture = props['sub_prefecture'] || props['N03_002']
       county = props['county'] || props['N03_003']
@@ -140,15 +138,16 @@ module PbfReverseGeocoder
 
       city = props['city'] || [municipality, ward].compact.join
 
-      normalized['prefecture'] ||= prefecture if prefecture
-      normalized['sub_prefecture'] ||= sub_prefecture if sub_prefecture
-      normalized['county'] ||= county if county
-      normalized['municipality'] ||= municipality if municipality
-      normalized['ward'] ||= ward if ward
-      normalized['city'] ||= city unless city.nil? || city.empty?
-      normalized['code'] ||= code if code
+      result = {}
+      result['prefecture'] = prefecture if prefecture
+      result['sub_prefecture'] = sub_prefecture if sub_prefecture
+      result['county'] = county if county
+      result['municipality'] = municipality if municipality
+      result['ward'] = ward if ward
+      result['city'] = city unless city.nil? || city.empty?
+      result['code'] = code if code
 
-      normalized
+      result
     end
 
     def self.find_layer(tile)

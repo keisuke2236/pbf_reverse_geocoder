@@ -230,6 +230,8 @@ RSpec.describe PbfReverseGeocoder do
           'ward' => '中央区',
           'code' => '01101'
         )
+        expect(result).not_to have_key('N03_001')
+        expect(result).not_to have_key('N03_005')
       end
     end
   end
