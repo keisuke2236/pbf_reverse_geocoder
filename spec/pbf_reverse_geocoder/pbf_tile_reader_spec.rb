@@ -25,11 +25,12 @@ RSpec.describe PbfReverseGeocoder::PbfTileReader do
 
         result = described_class.send(:decode_properties, feature, layer)
 
-        expect(result).to eq({
-                               'code' => '13101',
-                               'prefecture' => '東京都',
-                               'city' => '千代田区'
-                             })
+        expect(result).to include(
+          'code' => '13101',
+          'prefecture' => '東京都',
+          'city' => '千代田区',
+          'municipality' => '千代田区'
+        )
       end
     end
 

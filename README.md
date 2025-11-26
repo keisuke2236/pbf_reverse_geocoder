@@ -40,7 +40,12 @@ tiles_dir = './tiles'  # ダウンロードしたタイルの場所
 result = PbfReverseGeocoder.reverse_geocode(139.7671, 35.6812, tiles_dir)
 
 puts result
-# => { "prefecture" => "東京都", "city" => "千代田区", "code" => "13101" }
+# => {
+#      "prefecture" => "東京都",
+#      "city" => "千代田区",
+#      "municipality" => "千代田区",
+#      "code" => "13101"
+#    }
 ```
 
 ### より詳しい使用例
@@ -73,6 +78,18 @@ end
 # 札幌駅: 北海道 札幌市北区 (01102)
 ```
 
+### 取得できる情報
+
+`reverse_geocode` は行政区域の階層を加工せず返します。N03の元プロパティも保持したまま、以下のキーを追加で正規化しています。
+
+- `prefecture`: 都道府県 (`N03_001`)
+- `sub_prefecture`: 支庁/振興局など (`N03_002`)
+- `county`: 郡 (`N03_003`)
+- `municipality`: 市区町村 (`N03_004`)
+- `ward`: 政令市の行政区 (`N03_005` がある場合)
+- `city`: `municipality` と `ward` を連結した互換用フィールド
+- `code`: 全国地方公共団体コード (`N03_007` を5桁でゼロ埋め)
+
 ### Railsでの使用例
 
 ```ruby
@@ -98,81 +115,37 @@ end
 
 ### タイルデータの準備
 
-このgemを使用するには、事前にPBF形式のタイルデータを準備する必要があります。
+国土交通省の最新行政区域データ（例: [N03-2025](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2025.html)）を、そのままの属性でタイル化して利用します。リポジトリ直下に `N03-20250101_GML.zip` と展開済みの `N03-20250101_GML/` を配置済みです。
 
-以下の2つの方法があります：
+**必要なツール**
+- [tippecanoe](https://github.com/felt/tippecanoe)（必須）
+- [ogr2ogr](https://gdal.org/programs/ogr2ogr.html)（GeoJSON が同梱されていない場合のみ）
 
-#### 方法1: Geoloniaのリポジトリから取得
-
-[@geolonia/open-reverse-geocoder](https://github.com/geolonia/open-reverse-geocoder)のリポジトリから直接タイルを取得できます。
-
-```bash
-# Geoloniaのリポジトリをクローン（タイルのみ）
-git clone --depth 1 --filter=blob:none --sparse \
-  https://github.com/geolonia/open-reverse-geocoder.git
-
-cd open-reverse-geocoder
-git sparse-checkout set docs/tiles
-
-# タイルをホスティング用のディレクトリに配置
-cp -r docs/tiles /path/to/hosting/directory
-```
-
-> **💡 配置例**
-> - **Webサーバ**: `public/tiles`（Rails/Nginxなど）
-> - **共有ストレージ**: NFS/S3マウントポイントなど
-> - **アプリケーション内蔵**: `vendor/tiles`
-> - タイルは約560個、合計サイズは数十MB程度です
-> 
-> **ホスティングのポイント**:
-> - タイルデータは全サーバで共有可能（読み取り専用）
-> - CDN経由での配信も可能（PBFファイルはバイナリ）
-> - コンテナ環境ではボリュームマウントで共有
-
-#### 方法2: ソースデータから自分でビルド（最新データが必要な場合）
-
-国土数値情報から最新の行政区域データを使って、自分でタイルをビルドすることもできます。
-
-**🔧 必要なツール:**
-- [ogr2ogr](https://gdal.org/programs/ogr2ogr.html) - GDALツール（GeoJSON変換用）
-- [Tippecanoe](https://github.com/felt/tippecanoe) - Mapboxのタイル生成ツール
-- [mb-util](https://github.com/mapbox/mbutil) - MBTiles変換ツール
-
-**macOSの場合:**
+**データの取得例**
 
 ```bash
-# 必要なツールをインストール
-brew install gdal tippecanoe
-pip install mbutil
+# 2025年版N03データをダウンロード（約数百MB）
+curl -LO https://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2025/N03-20250101_GML.zip
+unzip N03-20250101_GML.zip
 ```
 
-**🏗️ ビルド手順:**
+**タイル作成（加工なし）**
 
 ```bash
-# 1. 元のリポジトリをクローン（ビルドスクリプトを使用）
-git clone https://github.com/geolonia/open-reverse-geocoder.git
-cd open-reverse-geocoder
-
-# 2. 依存関係をインストール
-npm install
-
-# 3. タイルをビルド（国土数値情報から自動ダウンロード＆ビルド）
-npm run build:tiles
-
-# 4. ビルドされたタイルをコピー
-cp -r docs/tiles /path/to/your/project/tiles
+# 2025年版N03データをタイル化する例
+ruby scripts/build_tiles.rb --source N03-20250101_GML --tiles-dir ./tiles --layer N03
 ```
 
-**ビルドプロセスの詳細:**
+- ズームレベルは `--zoom` で変更可能（デフォルト10固定の全国範囲）
+- GeoJSONを直接使う場合は `--geojson path/to/N03.geojson` を指定
+- GeoJSON が無い場合、Shapefile から `ogr2ogr` で自動変換します
 
-1. 国土数値情報から最新の[行政区域データ](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-v2_4.html)をダウンロード
-2. `ogr2ogr`でShapefileをGeoJSONに変換
-3. プロパティ調整スクリプトを実行（prefecture, city, codeフィールドを整形）
-4. `tippecanoe`でMBTilesを生成（非圧縮で出力）
-5. `mb-util`でタイルを分解して静的ファイル化
+**動作確認コマンド**
 
-
-> 詳細は[@geolonia/open-reverse-geocoder](https://github.com/geolonia/open-reverse-geocoder#%E3%82%BF%E3%82%A4%E3%83%AB%E3%81%AE%E3%83%93%E3%83%AB%E3%83%89%E6%96%B9%E6%B3%95)のREADMEを参照してください。
+```bash
+ruby scripts/reverse_geocode.rb --tiles-dir ./tiles --lng 139.7671 --lat 35.6812
+```
+東京駅周辺なら東京都千代田区（コード13101）が返る想定です。
 
 #### ディレクトリ構造
 
@@ -191,20 +164,27 @@ tiles/
         └── 413.pbf
 ```
 
+※ `tiles/` は `.gitignore` 済みです。生成物はコミット不要です。
+
 #### タイルの範囲について
 
 - **ズームレベル10固定**: このライブラリは @geolonia/open-reverse-geocoder と同じくズームレベル10のタイルのみを使用します（約30km四方）
-- **日本全体**: X座標 896-926、Y座標 396-413の範囲で日本全国をカバー
+- **日本全体**: X座標 896-926、Y座標 396-413の範囲で日本全国をカバー（N03公式データに基づく）
 - **個別地域**: 必要な地域のタイルのみをダウンロードすることも可能
+
+> 既存の Geolonia タイル（layer: `japanese-admins`）も互換性のため読み込めますが、最新データを使う場合は上記のN03公式データを推奨します。
 
 ### 戻り値
 
 成功時:
 ```ruby
 {
-  "prefecture" => "東京都",
-  "city" => "千代田区",
-  "code" => "13101"  # 全国地方公共団体コード
+  "prefecture" => "北海道",
+  "sub_prefecture" => "石狩振興局",
+  "city" => "札幌市中央区",
+  "municipality" => "札幌市",
+  "ward" => "中央区",
+  "code" => "01101"  # 全国地方公共団体コード（5桁ゼロ埋め）
 }
 ```
 

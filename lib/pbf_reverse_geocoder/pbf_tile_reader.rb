@@ -2,14 +2,18 @@
 
 require_relative 'simple_pbf_parser'
 require_relative 'geometry_decoder'
+require 'zlib'
+require 'stringio'
 
 # PBFタイルを読み込んでフィーチャー一覧を返すモジュール
 module PbfReverseGeocoder
 
   class PbfTileReader
 
-    # @geoloniaと同じレイヤー名
-    LAYER_NAME = 'japanese-admins'
+    # サポートするレイヤー名
+    # - 最新のN03タイルをそのまま使う場合: N03
+    # - 互換用: @geolonia/open-reverse-geocoder の japanese-admins
+    LAYER_NAMES = ['N03', 'N03-2025', 'japanese-admins'].freeze
 
     # PBFタイルを読み込んでフィーチャー一覧を返す
     #
@@ -24,14 +28,22 @@ module PbfReverseGeocoder
     def self.read_tile(tile_path, tile_x, tile_y, zoom)
       return [] unless File.exist?(tile_path)
 
-      # バイナリ読み込み
+      # バイナリ読み込み（gzipなら展開）
       pbf_data = File.binread(tile_path)
+      if gzip?(pbf_data)
+        begin
+          pbf_data = Zlib::GzipReader.new(StringIO.new(pbf_data)).read
+        rescue Zlib::GzipFile::Error
+          warn "Failed to gunzip tile: #{tile_path}"
+          return []
+        end
+      end
 
       # SimplePbfParserでパース
       tile = SimplePbfParser.parse(pbf_data)
 
       # japanese-admins レイヤーを抽出
-      layer = tile[:layers].find { |l| l[:name] == LAYER_NAME }
+      layer = find_layer(tile)
       return [] unless layer
 
       # フィーチャーをGeoJSON形式に変換
@@ -74,16 +86,81 @@ module PbfReverseGeocoder
         key = layer[:keys][key_idx]
         value_obj = layer[:values][val_idx]
 
-        # 値を文字列として取得
-        value = value_obj&.dig(:string_value) || ''
-
-        props[key] = value
+        value = extract_value(value_obj)
+        props[key] = value unless key.nil?
       end
 
-      props
+      normalize_properties(props)
     end
 
-    private_class_method :decode_properties
+    # 値オブジェクトからRuby値を抽出
+    #
+    # @param value_obj [Hash, nil]
+    # @return [Object, nil]
+    def self.extract_value(value_obj)
+      return '' unless value_obj
+
+      value_obj[:string_value] ||
+        value_obj[:float_value] ||
+        value_obj[:double_value] ||
+        value_obj[:int_value] ||
+        value_obj[:uint_value] ||
+        value_obj[:sint_value] ||
+        value_obj[:bool_value] ||
+        ''
+    end
+
+    # N03形式のプロパティを標準化
+    #
+    # - N03_* を pref/municipality/ward などに正規化
+    # - city は municipality と ward を連結した互換フィールド
+    #
+    # @param props [Hash]
+    # @return [Hash]
+    def self.normalize_properties(props)
+      normalized = props.dup
+
+      prefecture = props['prefecture'] || props['N03_001']
+      sub_prefecture = props['sub_prefecture'] || props['N03_002']
+      county = props['county'] || props['N03_003']
+      municipality = props['municipality'] || props['city'] || props['N03_004']
+      ward = props['ward'] || props['N03_005']
+
+      code = props['code'] || props['N03_007'] || props['id']
+      code = code.to_i.to_s if code.is_a?(Integer)
+      code = code.to_s.rjust(5, '0') if code
+
+      if ward.to_s.empty? && municipality == props['city']
+        # 分離されていない市+区の文字列を分割（例: 大阪市中央区）
+        if municipality && (m = municipality.match(/\A(.+市)(.+区)\z/))
+          municipality = m[1]
+          ward = m[2]
+        end
+      end
+
+      city = props['city'] || [municipality, ward].compact.join
+
+      normalized['prefecture'] ||= prefecture if prefecture
+      normalized['sub_prefecture'] ||= sub_prefecture if sub_prefecture
+      normalized['county'] ||= county if county
+      normalized['municipality'] ||= municipality if municipality
+      normalized['ward'] ||= ward if ward
+      normalized['city'] ||= city unless city.nil? || city.empty?
+      normalized['code'] ||= code if code
+
+      normalized
+    end
+
+    def self.find_layer(tile)
+      tile[:layers].find { |l| LAYER_NAMES.include?(l[:name]) } ||
+        tile[:layers].first
+    end
+
+    def self.gzip?(data)
+      data.bytes[0, 2] == [0x1f, 0x8b]
+    end
+
+    private_class_method :decode_properties, :extract_value, :find_layer, :gzip?
 
   end
 
