@@ -29,7 +29,13 @@ module PbfReverseGeocoder
     tile_path = TileCalculator.tile_path(tile_x, tile_y, zoom, tiles_dir)
 
     # PBFタイルを読み込んでパース
-    features = PbfTileReader.read_tile(tile_path, tile_x, tile_y, zoom)
+    features = PbfTileReader.read_tile(tile_path, tile_x, tile_y, zoom).map do |feature|
+      normalized = PbfTileReader.normalize_properties(feature[:properties])
+      {
+        geometry: feature[:geometry],
+        properties: normalized
+      }
+    end
 
     # 点を含むポリゴンを検索
     point = [lng, lat]

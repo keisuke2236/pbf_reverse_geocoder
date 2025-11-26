@@ -143,6 +143,32 @@ module PbfReverseGeocoder
         wire_type = field_key & 0x7
 
         case wire_type
+        when WIRE_TYPE_VARINT
+          number, pos = read_varint(data, pos)
+          case field_number
+          when 4
+            value[:int_value] = number
+          when 5
+            value[:uint_value] = number
+          when 6
+            value[:sint_value] = zigzag_decode(number)
+          when 7
+            value[:bool_value] = number != 0
+          end
+        when WIRE_TYPE_32BIT
+          # float_value
+          if field_number == 2
+            bytes = data[pos, 4]
+            pos += 4
+            value[:float_value] = bytes.pack('C*').unpack1('e')
+          end
+        when WIRE_TYPE_64BIT
+          # double_value
+          if field_number == 3
+            bytes = data[pos, 8]
+            pos += 8
+            value[:double_value] = bytes.pack('C*').unpack1('E')
+          end
         when WIRE_TYPE_LENGTH_DELIMITED
           length, pos = read_varint(data, pos)
           value_bytes = data[pos, length]
@@ -220,8 +246,13 @@ module PbfReverseGeocoder
       pos
     end
 
+    def self.zigzag_decode(value)
+      (value >> 1) ^ -(value & 1)
+    end
+
     private_class_method :parse_layer, :parse_feature, :parse_value,
-                         :read_varint, :unpack_packed_varint, :skip_field
+                         :read_varint, :unpack_packed_varint, :skip_field,
+                         :zigzag_decode
 
   end
 
